@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const WIDTH = 800;
-const HEIGHT = 800;
-const CELL_SIZE = 30;
+const WIDTH = 900;
+const HEIGHT = 900;
+const CELL_SIZE = 100;
 const NUM_ROWS = WIDTH / CELL_SIZE;
 const NUM_COLS = HEIGHT / CELL_SIZE;
 
@@ -22,10 +22,8 @@ export default function Home() {
   const board = createBoard();
   const [boardState, setBoardState] = useState<Board>(board);
 
-  console.log('boardState: ', boardState);
   const canvasRef = useRef<null | HTMLCanvasElement>(null);
 
-  // make cells come alive
   // compute the next board
   // update the board
   // create the game ticker
@@ -68,6 +66,19 @@ export default function Home() {
 
       <div className="flex justify-center mt-4">
         <canvas 
+          onClick={(e) => {
+            const x = Math.floor(e.nativeEvent.offsetX / CELL_SIZE);
+            const y = Math.floor(e.nativeEvent.offsetY / CELL_SIZE);
+            
+            let updatedBoardState = [ ...boardState ];
+            if(updatedBoardState[x][y] === 0) {
+              updatedBoardState[x][y] = 1;
+            } else {
+              updatedBoardState[x][y] = 0;
+            }
+            
+            setBoardState(updatedBoardState);
+          }}
           ref={canvasRef}
           width={WIDTH} 
           height={HEIGHT}
