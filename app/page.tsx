@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 
 const WIDTH = 900;
 const HEIGHT = 900;
-const CELL_SIZE = 10;
-const NUM_ROWS = WIDTH / CELL_SIZE;
-const NUM_COLS = HEIGHT / CELL_SIZE;
+const CELL_SIZE = 30;
+const NUM_ROWS = Math.floor(WIDTH / CELL_SIZE);
+const NUM_COLS = Math.floor(HEIGHT / CELL_SIZE);
 
 const colors = ["black", "white"];
 
@@ -21,11 +24,20 @@ function createBoard() : Board {
 export default function Home() {
   const board = createBoard();
   const [boardState, setBoardState] = useState<Board>(board);
-
+  const [isPlaying, setIsPlaying] = useState(false);
   const canvasRef = useRef<null | HTMLCanvasElement>(null);
+  const [switchStates, setSwitchStates] = useState({ boundarySwitch: true, seedSwitch: false });
 
-  // create the game ticker
-  // create the game controls
+  let nextBoardFunct = switchStates.seedSwitch ? computeNextBoardSeeds : computeNextBoard;
+
+  useEffect(() => {
+    if(!isPlaying) {
+      return;
+    }
+
+    const interval = setInterval(nextBoardFunct, 100);
+    return () => clearInterval(interval);
+  }, [isPlaying, nextBoardFunct]);
 
   useEffect(() => {
     if(canvasRef.current) {
@@ -76,10 +88,13 @@ export default function Home() {
 
     let numAliveNeighbors = 0;
     for(let direction of directions) {
-      if(!inBounds(r + direction[0], c + direction[1])) {
+      if(switchStates.boundarySwitch && !inBounds(r + direction[0], c + direction[1])) {
         continue;
       }
-      let neighbor = boardState[r + direction[0]][c + direction[1]];
+
+      let row = switchStates.boundarySwitch ? r + direction[0] : (r + direction[0] + NUM_ROWS) % NUM_ROWS;
+      let column = switchStates.boundarySwitch ? c + direction[1] : (c + direction[1] + NUM_COLS) % NUM_COLS;
+      let neighbor = boardState[row][column];
       if(neighbor === 1) {
         ++numAliveNeighbors;
       }
@@ -88,24 +103,52 @@ export default function Home() {
   }
 
   function computeNextBoard() {
-    let boardCopy = [ ...boardState ];
-    for(let r = 0; r < boardState.length; ++r) {
-      for(let c = 0; c < boardState[r].length; ++c) {
-        let aliveNeighborCount = countNeighbors(r, c);
-        
-        let newState: number;
-        if(boardCopy[r][c] === 0 && aliveNeighborCount === 3) {
-          newState = 1;
-        } else if(boardCopy[r][c] === 1 && aliveNeighborCount === 2 || aliveNeighborCount === 3) {
-          newState = 1;
-        } else {
-          newState = 0;
+    setBoardState((prevBoardState) => {
+      let newBoard = prevBoardState.map((row) => [ ...row ]);
+
+      for(let r = 0; r < boardState.length; ++r) {
+        for(let c = 0; c < boardState[r].length; ++c) {
+          let aliveNeighborCount = countNeighbors(r, c);
+          if(prevBoardState[r][c] === 0) {
+            if(aliveNeighborCount === 3) {
+              newBoard[r][c] = 1;
+            }
+          } else {
+            if(aliveNeighborCount !== 2 && aliveNeighborCount !== 3) {
+              newBoard[r][c] = 0;
+            }
+          }          
         }
-        
-        boardCopy[r][c] = newState;
       }
-    }
-    setBoardState(boardCopy);
+      return newBoard;
+    });
+  }
+
+  const switchEventHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSwitchStates({
+      ...switchStates,
+      [event.target.name]: event.target.checked
+    });
+  }
+
+  function computeNextBoardSeeds() {
+    setBoardState((prevBoardState) => {
+      let newBoard = prevBoardState.map((row) => [ ...row ]);
+
+      for(let r = 0; r < boardState.length; ++r) {
+        for(let c = 0; c < boardState[r].length; ++c) {
+          let aliveNeighborCount = countNeighbors(r, c);
+          if(prevBoardState[r][c] === 0) {
+            if(aliveNeighborCount === 2) {
+              newBoard[r][c] = 1;
+            }
+          } else {
+            newBoard[r][c] = 0;
+          }          
+        }
+      }
+      return newBoard;
+    });
   }
 
   function clearBoard() {
@@ -129,9 +172,17 @@ export default function Home() {
     <div>
       <h1 className="text-3xl text-center font-mono mt-4">Game of Life</h1>
       <div className="flex justify-evenly flex-row items-center">
-          <button className="py-4" onClick={computeNextBoard}>Next</button>
-          <button className="py-4" onClick={clearBoard}>Clear</button>
+          <button className="py-4" onClick={nextBoardFunct}>Next</button>
+          <button className="py-4" onClick={() => setIsPlaying(!isPlaying)}>{ isPlaying ? "Stop" : "Play"}</button>
+          <button className="py-4" onClick={clearBoard}>Reset</button>
       </div>
+      <div className="flex justify-evenly flex-row items-center">
+      <FormGroup row>
+        <FormControlLabel control={<Switch defaultChecked name="boundarySwitch" onChange={switchEventHandler} />} label="Enforce Boundaries" />
+        <FormControlLabel control={<Switch name="seedSwitch" onChange={switchEventHandler} />} label="Enable Seeds" />
+      </FormGroup>
+      </div>
+
       <div className="flex justify-center mt-4">
         <canvas 
           onClick={(e) => cellClickHandler(e)}
