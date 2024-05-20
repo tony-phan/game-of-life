@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
+import styles from './page.module.css';
+import { Button, Link } from "@mui/material";
 
 const WIDTH = 900;
 const HEIGHT = 900;
-const CELL_SIZE = 30;
+const CELL_SIZE = 20;
 const NUM_ROWS = Math.floor(WIDTH / CELL_SIZE);
 const NUM_COLS = Math.floor(HEIGHT / CELL_SIZE);
+const NUM_CELLS = NUM_ROWS * NUM_COLS;
 
 const colors = ["black", "white"];
 
@@ -29,6 +32,18 @@ export default function Home() {
   const [switchStates, setSwitchStates] = useState({ boundarySwitch: true, seedSwitch: false });
 
   let nextBoardFunct = switchStates.seedSwitch ? computeNextBoardSeeds : computeNextBoard;
+
+  const numAliveCells = useMemo(() => {
+    let result = 0;
+    for(let r = 0; r < boardState.length; ++r) {
+      for(let c = 0; c < boardState[r].length; ++c) {
+        if(boardState[r][c] == 1) {
+          ++result;
+        }
+      }
+    }
+    return result;
+  }, [boardState]);
 
   useEffect(() => {
     if(!isPlaying) {
@@ -170,17 +185,21 @@ export default function Home() {
 
   return (
     <div>
-      <h1 className="text-3xl text-center font-mono mt-4">Game of Life</h1>
-      <div className="flex justify-evenly flex-row items-center">
-          <button className="py-4" onClick={nextBoardFunct}>Next</button>
-          <button className="py-4" onClick={() => setIsPlaying(!isPlaying)}>{ isPlaying ? "Stop" : "Play"}</button>
-          <button className="py-4" onClick={clearBoard}>Reset</button>
+      <div className={styles.header}>
+        <h1 className="text-3xl text-center font-mono mt-4">Game of Life</h1>
+        <h2>This is an implementation of Conway's Game of Life (GOL) built in React using Next.js. To learn more about GOL, click <Link target="_blank" href="https://en.wikipedia.org/wiki/Conway's_Game_of_Life">here</Link>.</h2>
       </div>
       <div className="flex justify-evenly flex-row items-center">
-      <FormGroup row>
-        <FormControlLabel control={<Switch defaultChecked name="boundarySwitch" onChange={switchEventHandler} />} label="Enforce Boundaries" />
-        <FormControlLabel control={<Switch name="seedSwitch" onChange={switchEventHandler} />} label="Enable Seeds" />
-      </FormGroup>
+          <Button className={styles.btn} onClick={nextBoardFunct}>Next</Button>
+          <Button className={styles.btn} onClick={() => setIsPlaying(!isPlaying)}>{ isPlaying ? "Stop" : "Play"}</Button>
+          <Button className={styles.btn} onClick={clearBoard}>Reset</Button>
+          {/* <Button className={styles.btn} onClick={clearBoard}>Randomize Cells</Button>*/}
+      </div>
+      <div className="flex justify-evenly flex-row items-center">
+        <FormGroup row>
+          <FormControlLabel control={<Switch defaultChecked name="boundarySwitch" onChange={switchEventHandler} />} label="Enforce Boundaries" />
+          <FormControlLabel control={<Switch name="seedSwitch" onChange={switchEventHandler} />} label="Enable Seeds" />
+        </FormGroup>
       </div>
 
       <div className="flex justify-center mt-4">
