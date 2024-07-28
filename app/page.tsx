@@ -6,6 +6,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import styles from './page.module.css';
 import { Button, Link } from "@mui/material";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const WIDTH = 900;
 const HEIGHT = 900;
@@ -13,7 +15,6 @@ const CELL_SIZE = 20;
 const NUM_ROWS = Math.floor(WIDTH / CELL_SIZE);
 const NUM_COLS = Math.floor(HEIGHT / CELL_SIZE);
 const NUM_CELLS = NUM_ROWS * NUM_COLS;
-
 const colors = ["black", "white"];
 
 type Board = number[][];
@@ -30,6 +31,7 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const canvasRef = useRef<null | HTMLCanvasElement>(null);
   const [switchStates, setSwitchStates] = useState({ boundarySwitch: true, seedSwitch: false });
+  const [epochs, setEpochs] = useState(0);
 
   let nextBoardFunct = switchStates.seedSwitch ? computeNextBoardSeeds : computeNextBoard;
 
@@ -137,6 +139,7 @@ export default function Home() {
       }
       return newBoard;
     });
+    setEpochs((previousState) => previousState + 1);
   }
 
   const switchEventHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,9 +167,11 @@ export default function Home() {
       }
       return newBoard;
     });
+    setEpochs((previousState) => previousState + 1);
   }
 
   function clearBoard() {
+    setEpochs(0);
     setBoardState(board);
   }
 
@@ -183,6 +188,39 @@ export default function Home() {
     setBoardState(updatedBoardState);
   } 
 
+  function getRandomNumber(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  
+  const showToast = () => {
+    toast.error('Cannot randomize cells while the game is in play, please stop the game first', {
+      position: 'bottom-right'
+    });
+  };
+
+
+  function randomizeLiveCells() {
+    if(isPlaying) {
+      showToast();
+      return;
+    }
+
+    setEpochs(0);
+    let randomBoardState = [ ...board ];
+
+    let counter = 0;
+    let numAliveCells = getRandomNumber(0, NUM_CELLS) % NUM_CELLS / 2;
+    while(counter < numAliveCells) {
+      let randomRow = getRandomNumber(0, NUM_ROWS) % NUM_ROWS;
+      let randomCol = getRandomNumber(0, NUM_COLS) % NUM_COLS;
+      if(randomBoardState[randomRow][randomCol] === 0) {
+        randomBoardState[randomRow][randomCol] = 1;
+        ++counter;
+      }
+    }
+    setBoardState(randomBoardState);
+  }
+
   return (
     <div>
       <div className={styles.header}>
@@ -193,7 +231,7 @@ export default function Home() {
           <Button className={styles.btn} onClick={nextBoardFunct}>Next</Button>
           <Button className={styles.btn} onClick={() => setIsPlaying(!isPlaying)}>{ isPlaying ? "Stop" : "Play"}</Button>
           <Button className={styles.btn} onClick={clearBoard}>Reset</Button>
-          {/* <Button className={styles.btn} onClick={clearBoard}>Randomize Cells</Button>*/}
+          <Button className={styles.btn} onClick={randomizeLiveCells}>Randomize Live Cells</Button>
       </div>
       <div className="flex justify-evenly flex-row items-center">
         <FormGroup row>
@@ -201,6 +239,11 @@ export default function Home() {
           <FormControlLabel control={<Switch name="seedSwitch" onChange={switchEventHandler} />} label="Enable Seeds" />
         </FormGroup>
       </div>
+      <div className="flex justify-evenly flex-row items-center m-3">
+        <p>Epochs: {epochs}</p>
+      </div>
+
+      <ToastContainer />
 
       <div className="flex justify-center mt-4">
         <canvas 
