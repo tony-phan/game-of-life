@@ -21,7 +21,7 @@ type Board = number[][];
 
 function createBoard() : Board {
   return Array.from({ length: NUM_ROWS }, () => 
-    Array.from({ length: NUM_COLS }, () => 0)
+    Array.from({ length: NUM_COLS }, () => Math.floor(Math.random() * 2)) // return either 0 or 1 randomly, used to set default state of the board
   );
 }
 
@@ -171,6 +171,10 @@ export default function Home() {
   }
 
   function clearBoard() {
+    if(isPlaying) {
+      showToast('reset');
+      return;
+    }
     setEpochs(0);
     setBoardState(board);
   }
@@ -192,8 +196,8 @@ export default function Home() {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
   
-  const showToast = () => {
-    toast.error('Cannot randomize cells while the game is in play, please stop the game first', {
+  const showToast = (text: string) => {
+    toast.error(`Cannot ${text} cells while the game is in play, please stop the game first`, {
       position: 'bottom-right'
     });
   };
@@ -201,7 +205,7 @@ export default function Home() {
 
   function randomizeLiveCells() {
     if(isPlaying) {
-      showToast();
+      showToast('randomize');
       return;
     }
 
